@@ -169,6 +169,94 @@ public class Test0 {
 - 方法只有一个参数时，小括号可以省略
 - 以上的规则记不住也可以省略不记
 
+```java
+@Slf4j
+public class Test0 {
+    public static void foreachArr(List<Object> list, Consumer consumer) {
+        for (Object object : list) {
+            consumer.accept(object);
+        }
+    }
 
+    @Test
+    public void test4() {
+        List<Object> list = new ArrayList<Object>();
+        list.add(1);
+        list.add(3);
+        list.add(5);
+        list.add(9);
+        //方式1
+        foreachArr(list, (x) -> {
+            log.debug("{}", x);
+        });
+        //方式2，使用省略规则
+        foreachArr(list, x -> log.debug("{}", x) );
+    }
+}
+```
+
+# 3. Stream流
+## 3.1 概述
+java8的Strean使用的是函数式编程，如同它的名字一样，它可以
+用来对集合或数组进行链状流式的操作。可以方便让我们对集合
+或数组操作。
+
+## 3.2 案例数据准备
+```java
+@Data
+@NoArgsConstructor//没有无参构造
+@AllArgsConstructor
+@EqualsAndHashCode//重写了equal和hashcode方法
+public class Author {
+    private Long id;
+    private String name;
+    private Integer age;
+    private String intro;
+    private List<Book> books;
+}
+```
+```java
+@Data
+@NoArgsConstructor//没有无参构造
+@AllArgsConstructor
+@EqualsAndHashCode//重写了equal和hashcode方法
+public class Book {
+    private Long id;
+    private String bookName;
+    private String category;
+    private Integer score;
+    private String intro;
+}
+```
+```java
+public class InitData {
+    public static List<Author> initAuthor1() {
+        //创建一些作者对象
+        Author a1 = new Author(1L, "梦多", 33, "一个从菜刀中明悟哲理的人", null);
+        Author a2 = new Author(2L, "亚拉索", 15, "风不及我的思考速度", null);
+        Author a3 = new Author(3L, "易", 14, "是世界限制了我的思考", null);
+        Author a4 = new Author(3L, "易", 14, "是世界限制了我的思考", null);
+        //书记列表
+        List<Book> b1 = new ArrayList<Book>();
+        List<Book> b2 = new ArrayList<Book>();
+        List<Book> b3 = new ArrayList<Book>();
+        b1.add(new Book(1L, "刀的两侧是光与暗",  "爱情，哲学", 88, "用一把刀分割爱恨"));
+        b1.add(new Book(2L, "一个人不能死在同一把刀下",
+                "成长，哲学", 99, "从失败中明悟哲学"));
+
+        b2.add(new Book(3L, "那风吹不到的地方", "哲学", 85, "用思维看世界尽头"));
+        b2.add(new Book(3L, "那风吹不到的地方", "哲学", 85, "用思维看世界尽头"));
+        b2.add(new Book(4L, "那些白线，接与不接", "哲学", 56, "为自己的错误买单"));
+
+        b3.add(new Book(5L, "你的剑就是我的剑", "爱情", 68, "一个武者的伴侣的宽容"));
+        b3.add(new Book(6L, "风遇见", "传记", 80, "错过即是最好的相遇"));
+        b3.add(new Book(6L, "风遇见", "传记", 80, "错过即是最好的相遇"));
+        a1.setBooks(b1);
+        a2.setBooks(b2);
+        a3.setBooks(b3);
+        return new ArrayList<>(Arrays.asList(a1, a2, a3));
+    }
+}
+```
 
 
