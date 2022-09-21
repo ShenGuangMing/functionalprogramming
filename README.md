@@ -258,5 +258,80 @@ public class InitData {
     }
 }
 ```
+## 3.3 快速入门
+### 3.3.1 需求
+打印所有年龄小于18岁的作者的名字，注意去重
+```java
 
+public class Test0 {
+    @Test
+    public void test0() {
+        List<Author> authors = InitData.initAuthor1();
+        authors.stream()//把集合转化成流
+                .distinct()//去重
+                .filter(author -> author.getAge() < 18)
+                .forEach(author -> System.out.println(author.getName()));
+
+    }
+}
+```
+> 可以在使用流的位置打断点，调试中找到 Throw Current Stream Chain
+
+## 3.4 常用操作
+### 3.4.1 创建流
+单例集合：`集合对象.stream()`
+```text
+    List<Author> authors = new ArrayList<Author>();
+    Stream<Author>stream = authors.stream();
+```
+数组：Arrays.stream(数组)或者使用Stream.of(数组)创建
+```text
+    Integer[] arr = {1, 2, 3, 4, 5, 6, 7, 8};
+    Stream<Integer> stream0 = Arrays.stream(arr);
+    Stream<Integer> stream0 = Stream.of(arr);
+```
+双列集合：转化成单例集合后再创建
+```text
+    Map<String, Integer> map = new HashMap<String, Integer>();
+    map.put("那笔小新", 19);
+    map.put("黑子", 17);
+    map.put("湘湘", 18);
+    Stream<Map.Entry<String, Integer>> stream = map.entrySet().stream();
+```
+### 3.4.2 中间操作
+     
+**filter**
+可以对流中的元素进行条件过滤，符合条件的会留在流中
+
+例如：打印姓名长度大于1的作家姓名
+```java
+@Slf4j
+public class Test0 {
+    List<Author> authors = InitData.initAuthor1();
+    @Test
+    public void test0() {
+        //打印姓名长度大于1的作家姓名
+        authors.stream()
+                .filter(author -> author.getName().length() > 1)//过滤筛选
+                .forEach(author -> log.debug("Author : {}", author.getName()));
+    }
+
+}
+```
+**map**
+可以把流中元素或转化
+例如：打印所有作家
+```java
+@Slf4j
+public class Test0 {
+    List<Author> authors = InitData.initAuthor1();
+
+    @Test
+    public void test1() {
+        authors.stream()
+                .map(Author::getName)
+                .forEach(name -> log.debug("Author : {}", name));
+    }
+}
+```
 
