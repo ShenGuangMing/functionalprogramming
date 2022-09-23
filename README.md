@@ -320,6 +320,7 @@ public class Test0 {
 ```
 **map**
 可以把流中元素或转化
+
 例如：打印所有作家
 ```java
 @Slf4j
@@ -329,9 +330,481 @@ public class Test0 {
     @Test
     public void test1() {
         authors.stream()
-                .map(Author::getName)
+                .map(Author::getName)//将流中的元素由Author--->String
                 .forEach(name -> log.debug("Author : {}", name));
     }
 }
 ```
+**distinct**
+可以去除流中重复的元素
+
+例如：打印所有作家的姓名，不能有重复的
+```java
+@Slf4j
+public class Test0 {
+    List<Author> authors = InitData.initAuthor1();
+    @Test
+    public void test3() {
+        //打印所有作家的姓名，姓名不能有重复的
+        authors.stream()
+                .map(Author::getName)
+                .distinct()
+                .forEach(name -> log.debug("name = {}", name));
+        //打印作者信息，不能有重复
+        authors.stream()
+                .distinct()
+                .forEach(System.out::println);
+    }
+}
+```
+> **注意**
+> 
+> distinct方法以来Object的equals方法来判断是否是相同的对象。所以需要注意重写equals方法
+
+**sorted**
+可以对流中的元素进行排序
+
+例如：对流中元素按照年龄进行降序排序，并且要求不能有重复的元素
+```java
+@Slf4j
+public class Test0 {
+    List<Author> authors = InitData.initAuthor1();
+    @Test
+    public void test4() {
+        //实现Comparable接口：对流中元素按照年龄进行降序排序，并且要求不能有重复的元素
+        authors.stream()
+                .distinct()
+                .sorted()
+                .forEach(System.out::println);
+        //没有实现接口方法：
+        authors.stream()
+                .distinct()
+                .sorted((o1, o2) -> o1.getAge()-o2.getAge() )
+                .forEach(System.out::println);
+    }
+}
+```
+> **注意**
+> 
+> 空参的sorted方法需要流中元素实现了Comparable接口
+
+**limit**
+可以设置流的最大长度，超出部分会被抛弃
+
+例如：对流中元素按照年龄进行降序排序，并且要求不能有重复的元素，然后打印其中年龄最大的两位作家的姓名
+```java
+@Slf4j
+public class Test0 {
+    List<Author> authors = InitData.initAuthor1();
+    public void test5() {
+        //对流中元素按照年龄进行降序排序，并且要求不能有重复的元素，然后打印其中年龄最大的两位作家的姓名
+        authors.stream()
+                .distinct()
+                .sorted((o1, o2) -> o1.getAge() - o2.getAge())
+                .limit(2)
+                .forEach(System.out::println);
+    }
+}
+```
+
+**skip**
+跳过流中前n个元素，返回剩下的
+
+例如：
+```java
+@Slf4j
+public class Test0 {
+    List<Author> authors = InitData.initAuthor1();
+   
+    @Test
+    public void test6() {
+        //对流中元素按照年龄进行降序排序，并且要求不能有重复的元素，然后打印其中年龄最大的两位作家
+        authors.stream()
+                .distinct()
+                .sorted((o1, o2) -> -(o1.getAge()-o2.getAge()))
+                .skip(1)
+                .forEach(System.out::println);
+    }
+}
+```
+
+**flatMap**
+map只能把一个对象转化为另一个对象的元素，二flatMap可以把一个对象转化为多个对象流中的元素
+
+例一：打印所有书籍的名字，要求去重
+```java
+@Slf4j
+public class Test0 {
+    List<Author> authors = InitData.initAuthor1();
+    @Test
+    public void test7() {
+        authors.stream()
+                .flatMap(author -> author.getBooks().stream())
+                .distinct()//去重
+                .forEach(book -> log.debug("{}", book));
+    }
+}
+```
+
+例二：打印书籍的所有分类。要求分类进行去重。不能出现这种形式：哲学、爱情
+```java
+@Slf4j
+public class Test0 {
+    List<Author> authors = InitData.initAuthor1();
+   
+    @Test
+    public void test8() {
+        authors.stream()
+                .flatMap(author -> author.getBooks().stream())
+                .distinct()
+                //将字符数组转化为流
+                .flatMap(book -> Arrays.stream(book.getCategory().split(",")))
+                //去重
+                .distinct()
+                .forEach(category -> log.debug("{}",  category));
+    }
+}
+```
+
+### 3.4.3 终结操作
+**forEach**
+对流中的元素进行遍历，我们通过传入的参数指定对遍历元素进行什么具体操作
+
+例如：输出所有作家姓名
+```java
+@Slf4j
+public class Test1 {
+    List<Author> authors = InitData.initAuthor1();
+    @Test
+    public void test0() {
+        //可以直接进行遍历
+        authors
+                .forEach(author -> log.debug("name ：{}", author.getName()));
+        System.out.println("---------------------------");
+        //可以转化成流再进行遍历
+        authors.stream()
+                .forEach(author -> log.debug("name ：{}", author.getName()));
+
+    }
+}
+```
+
+**count**
+可以获取当前流中元素个数
+
+例子：打印作家的所有书籍，注意去重
+```java
+@Slf4j
+public class Test1 {
+    List<Author> authors = InitData.initAuthor1();
+ 
+    @Test
+    public void test1() {
+        //打印作家的所有书籍，注意去重
+        long count = authors.stream()
+                .distinct()
+                .flatMap(author -> author.getBooks().stream())
+                .distinct()
+                .count();
+        log.debug("count = {}", count);
+    }
+}
+```
+
+**max&min**
+获取流中的最值
+
+例子：分别获取这些作家的书籍中分数最高和最低并打印
+```java
+@Slf4j
+public class Test1 {
+    List<Author> authors = InitData.initAuthor1();
+    @Test
+    public void test2() {
+        //分别获取这些作家的书籍中分数最高和最低并打印
+        for (Author author : authors) {
+            Optional<Integer> max = author.getBooks().stream()
+                    //转化为分数
+                    .map(Book::getScore)
+                    .max(Integer::compare);
+
+            Optional<Integer> min = author.getBooks().stream()
+                    //转化为分数
+                    .map(Book::getScore)
+                    .max(Integer::compare);
+            log.debug("{} max {}", author.getName(), max.get());
+            log.debug("{} min {}", author.getName(), min.get());
+        }
+    }
+    @Test
+    public void test3() {
+        //求书籍中分数最高的
+        Optional<Integer> max = authors.stream()
+                .distinct()//去重
+                .flatMap(author -> author.getBooks().stream())
+                .distinct()//去重
+                //转元素类型
+                .map(Book::getScore)
+                .max(Integer::compare);
+        log.debug("max {}", max.get());
+        //求书籍中分数最低的
+        Optional<Integer> min = authors.stream()
+                .distinct()//去重
+                .flatMap(author -> author.getBooks().stream())
+                .distinct()//去重
+                //转元素类型
+                .map(Book::getScore)
+                .min(Integer::compare);
+        log.debug("min {}", min.get());
+    }
+}
+```
+
+**collect**
+把流转化成集合
+
+例子：（list）分别获取这些作家的书籍中分数最高和最低并打印，注意去重
+```java
+@Slf4j
+public class Test1 {
+    List<Author> authors = InitData.initAuthor1();
+  
+    @Test
+    public void test4() {
+        //分别获取这些作家的书籍中分数最高和最低并打印，注意去重
+        //1.获取作家流
+        List<Author> list = authors.stream()
+                .distinct()
+                .collect(Collectors.toList());
+        System.out.println(list.size());
+        for (Author author : list) {
+            //max
+            Optional<Integer> max = author.getBooks().stream()
+                    .map(Book::getScore)
+                    .max(Integer::compare);
+            //min
+            Optional<Integer> min = author.getBooks().stream()
+                    .map(Book::getScore)
+                    .min(Integer::compare);
+
+            log.debug("{} max {}", author.getName(), max.get());
+            log.debug("{} min {}", author.getName(), min.get());
+        }
+    }
+}
+```
+
+例子：（set）获取所有的书籍，注意去重
+```java
+@Slf4j
+public class Test1 {
+    List<Author> authors = InitData.initAuthor1();
+    @Test
+    public void test5() {
+        //获取所有的书
+        Set<Book> collect = authors.stream()
+                .flatMap(author -> author.getBooks().stream())
+                .collect(Collectors.toSet());
+        for (Book book : collect) {
+            System.out.println(book);
+        }
+    }
+}
+```
+
+例子：（map）获取一个作者的所有书籍
+```java
+@Slf4j
+public class Test1 {
+    List<Author> authors = InitData.initAuthor1();
+    
+    @Test
+    public void test6() {
+        Map<String, List<Book>> map = authors.stream()
+                .distinct()//去重
+                .collect(Collectors.toMap(Author::getName, Author::getBooks));
+        for (String name : map.keySet()) {
+            log.debug("{} books {}", name, map.get(name));
+        }
+    }
+}
+```
+
+#### 查找和匹配
+
+**anyMatch**
+
+可以用来判断是否任意符合匹配条件元素，结果为boolean类型。
+
+例子：判断是否有年龄在29以上的作家
+```java
+@Slf4j
+public class Test2 {
+    List<Author> authors = InitData.initAuthor1();
+
+    @Test
+    public void test1() {
+        //判断是否有年龄在29以上的作家
+        boolean b = authors.stream()
+                //一个为真，返回真， 全为假返回假
+                .anyMatch(author -> author.getAge() > 29);
+        log.debug("是否存在29岁以上的作者：{}", b);
+    }
+}
+```
+
+**allMatch**
+
+可以判断流中的元素是否都匹配条件，结果为boolean类型，见假为假，全真为真
+
+例子：判断所有作家是否都成年
+```java
+@Slf4j
+public class Test2 {
+    List<Author> authors = InitData.initAuthor1();
+    @Test
+    public void test2() {
+        //判断所有作家是否都成年
+        boolean b = authors.stream()
+                //见假为假，全真为真
+                .allMatch(author -> author.getAge() > 18);
+        log.debug("是否所有的作家都成年了：{}", b);
+    }
+}
+```
+
+**noneMatch**
+
+可以判断流中元素是否都不满足条件，如果都不符合就返回true，否则返回false
+
+例子：判断所有作者否没有超过50岁
+```java
+@Slf4j
+public class Test2 {
+    List<Author> authors = InitData.initAuthor1();
+
+    @Test
+    public void test3() {
+        //判断所有作者否没有超过50岁
+        boolean b = authors.stream()
+                //如果都不符合就返回true，否则返回false
+                .noneMatch(author -> author.getAge() > 50);
+        log.debug("所有作家是否都没有超过50岁：{}", b);
+    }
+}
+```
+
+**findAny**
+
+获取流中的任意元素。该方法没有办法保证获取的一定是流中第一个元素。
+
+例子：获取任意一个大于18岁的作家，如果存在就输入他的姓名
+```java
+@Slf4j
+public class Test2 {
+    List<Author> authors = InitData.initAuthor1();
+    @Test
+    public void test4() {
+        Optional<Author> one = authors.stream()
+                .filter(author -> author.getAge() >= 18)
+                .findAny();
+        log.debug("成年的作者：{}", one.get().getName());
+    }
+}
+```
+
+**findFirst**
+
+获取流中第一个元素
+
+例子：返回第一个年龄最小的作家
+```java
+@Slf4j
+public class Test2 {
+    List<Author> authors = InitData.initAuthor1();
+    @Test
+    public void test5() {
+        Optional<Author> first = authors.stream()
+                .distinct()
+                .sorted((o1, o2) -> {
+                    return o1.getAge() - o2.getAge();
+                })
+                .findFirst();
+        first.ifPresent(author -> log.debug("第一个最小的作家：{}", author.getName()));
+    }
+}
+```
+
+**reduce归并**
+
+对流中的数据按照你指定的计算方式计算出一个结果（缩减操作）
+
+reduce的作用是吧stream中的元素组合起来，我们可以传入一个初始值，它会按照我们的计算方式依次从流中的元素和在初始值的基础上进行计算，计算的结果再和后面的元素计算
+
+他的内部计算方式：
+```text
+T result = identity;
+for(T element : this stream) {
+    result = accumulator.apply(result, element);
+}
+return result;
+```
+> 其中的identity就是我们通过方法传入的初始值，accumulator的apply具体进行什么计算也是我们通过方法参数来确定的
+> 
+
+例如：使用reduce求所有作者的年龄和
+```java
+@Slf4j
+public class Test3 {
+    List<Author> authors = InitData.initAuthor1();
+    @Test
+    public void test0() {
+        //使用reduce求所有作者的年龄和
+        Integer reduce = authors.stream()
+                //去重
+                .distinct()
+                .map(Author::getAge)
+                .reduce(0, Integer::sum);
+        log.debug("年龄和：{}", reduce);
+    }
+}
+```
+
+例如：使用reduce求所有作者中年龄最大值
+```java
+@Slf4j
+public class Test3 {
+    List<Author> authors = InitData.initAuthor1();
+    @Test
+    public void test1() {
+        //使用reduce求所有作者的年龄和
+        Integer reduce = authors.stream()
+                //去重
+                .distinct()
+                .map(Author::getAge)
+                .reduce(0, Integer::max);
+        log.debug("年龄最大：{}", reduce);
+    }
+
+}
+```
+例如：使用reduce求所有作者中年龄最小值
+```java
+@Slf4j
+public class Test3 {
+    List<Author> authors = InitData.initAuthor1();
+
+    @Test
+    public void test2() {
+        //使用reduce求所有作者的年龄和
+        Integer reduce = authors.stream()
+                //去重
+                .distinct()
+                .map(Author::getAge)
+                .reduce(0, Integer::min);
+        log.debug("年龄最大：{}", reduce);
+    }
+}
+```
+
 

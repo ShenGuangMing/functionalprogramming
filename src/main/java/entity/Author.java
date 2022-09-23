@@ -11,10 +11,16 @@ import java.util.List;
 @NoArgsConstructor//没有无参构造
 @AllArgsConstructor
 @EqualsAndHashCode//重写了equal和hashcode方法
-public class Author {
+public class Author implements Comparable<Author>{
     private Long id;
     private String name;
     private Integer age;
     private String intro;
     private List<Book> books;
+
+
+    @Override
+    public int compareTo(Author o) {
+        return this.age - o.getAge();
+    }
 }
