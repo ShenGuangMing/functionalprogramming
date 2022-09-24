@@ -741,7 +741,7 @@ public class Test2 {
 
 reduce的作用是吧stream中的元素组合起来，我们可以传入一个初始值，它会按照我们的计算方式依次从流中的元素和在初始值的基础上进行计算，计算的结果再和后面的元素计算
 
-他的内部计算方式：
+reduce两个参数的重载形式内部计算方式：
 ```text
 T result = identity;
 for(T element : this stream) {
@@ -782,7 +782,7 @@ public class Test3 {
                 //去重
                 .distinct()
                 .map(Author::getAge)
-                .reduce(0, Integer::max);
+                .reduce(Integer.MAX_VALUE, Integer::max);
         log.debug("年龄最大：{}", reduce);
     }
 
@@ -801,10 +801,335 @@ public class Test3 {
                 //去重
                 .distinct()
                 .map(Author::getAge)
-                .reduce(0, Integer::min);
-        log.debug("年龄最大：{}", reduce);
+                .reduce(Integer.MIN_VALUE, Integer::min);
+        log.debug("年龄最小：{}", reduce);
+    }
+}
+```
+## 3.5 注意事项
+- 惰性求值（如果没有终结操作，没有中间操作是不会得到执行的）
+- 流是一次性的（一旦一个流对象经过一个终止操作，这个流就不能再被使用）
+- 不会影响数据（我们在流中可以多数据做很多处理。但是正常情况下是不会影响原来集合中的元素的，这往往也是我们期望的）
+
+# Optional
+## 4.1 概述
+我们在编写代码的时候出现最多的就是空指针异常。所以很多情况下我们需要做各种非空判断。
+
+例如：
+```text
+Author author = getAuthor();
+if (author != null) {
+    System.out.println(author.getName());
+}
+```
+尤其是对象中的属性还是一个对象的时候。这种判断会更多。
+
+而过多的判断语句会让我们代码显得臃肿不堪。
+
+所以在JDK8中引入了Optional，养成使用Optional的习惯和你可以写出优美的代码来避免空指针异常
+
+并且在很多函数式编程相关API中也都用到Optional，如果不会使用Optional也会对函数式编程的学习造成影响
+
+##  4.2 使用
+### 4.2.1 创建对象
+Optional就好像包装类，可以把我们具体的数据封装到Optional内部。然后我们去使用Optional中封装的方法封装进去的数据就可以非常优雅的避免空指针
+
+我们一般使用**Optional**的静态方法**ofNullable**来把对象封装到Optional对象。无论参入的参数是否是null都不会有问题
+```text
+    Author author = getAuthor();
+    Optional<Author> authorOption = Optional.ofNullable(author);
+```
+你可能会觉得还要加一行代码进行封装比较麻烦。但是如果改造下getAuthor()方法，让其的返回值就是封装好的Optional对象的话，我们在使用就会方便很多
+
+而且在实际的开发中我们的数据大多数来至数据库。Mybatis从3.5版本可以也支持Optional了，我们可以直接把dao方法的返回值类型定义为Optional类型，Mybatis会自己把数据封装成Optional对象返回。封装过程也不用我们自己操作
+
+如果你确定一个**对象不是空**的则可以使用Optional的**静态方法of**来把数据封装为Optional对象
+```text
+    Author author = new Author();
+    Optional<Author> authorOptional = Optional.of(author);
+```
+> 但是一定要注意，如果使用of的时候传入的参数**一定不能为null**。
+> 
+
+如果一个方法的返回值类型是Optional类型。而如果我们经过判断发现某次计算得到的返回值是null，这时候我们需要把null封装成Optional对象返回，这时可以使用Optional静态方法empty来封装
+```text
+    Optional.empty();
+```
+
+### 4.2.2 安全消费
+我们获取到一个Optional对象肯定是操作其中的数据。这时候就可以使用ifPresent方法来消费其中的值。这个方法判断其内封装的数据是否为空，不为空的时候才能执行具体的消费代码。这样使用就封安全了。
+
+例如：以下的写法就优雅的避免了空指针异常
+```text
+    Optional<Author> authorOptional = Optional.ifNullable(getAuthor);
+    authorOptional.ifPresent(System.out::println);
+```
+
+### 4.2.3 获取值
+如果我们想自己处理数据，可以使用get方法获取值，但是不推荐，因为当内部数据为null时会报空指针异常
+
+### 4.2.4 安全的获取值
+如果我们期望安全的获取值，不推荐使用get方法获取值，而是使用Optional提供的以下方法
+- orElseGet
+
+获取数据并且设置数据为空时的默认值，如果数据不为空就能获取数据，如果为空根据你传入的参数来创建的对象作为默认的返回值返回
+```text
+    Optional<Author> authorOptional = Optional.ofNullable(getAuthor);
+    Author author = authorOptional.ofElseGet(() -> new Author());
+```
+
+- orElseThrow
+
+获取值，如果不为空就返回数据，如果为空根据你传入的参数来创建异常
+```text
+    Optional<Author> authorOptional = Optional.ofNullable(getAuthor);
+    try {
+        Author author = authorOptional.orElseThrow(() -> {
+            new RuntimeException("author为空");
+            System.out.println(author.getName());
+        })  
+    }catch (Throwable t) {
+        t.printStackTrace();
+    }
+```
+
+### 4.2.5 过滤
+我们可以使用filter方法对数据进行过滤。如果原本有数据的，但是不符合判断，也会变成一个无数据的Optional对象
+```text
+    Optional<Author> authorOptional = Optional.ofNullable(getAuthor);
+    authorOptional.filter(author -> author.getAge() > 100)
+        .ifPresent(author -> System.out.println(author.getName))    
+```
+
+### 4.2.6 判断
+我们可以使用isPerson方法进行是否存在数据的判断。如果为空返回值为false，如果不为空返回true。但这种方式不能体现Optional的好处，更**推荐ifPresent**
+```text
+    Optional<Author> authorOptional = Optional.ofNullable(getAuthor);
+    if(authorOptional.isPresent()) {
+        System.out.println(authorOptional.get().getName());
+    }
+```
+
+### 4.2.7 数据转换
+Optional还提供了map可以让我们的数据进行转换，并且转换的也还是被Optional包装好的，保证我们使用的安全。例如：我们想作家数据集合
+```text
+    Optional<Author> authorOptional = Optional.ofNullable(getAuthor());
+    Optional<List<Book>> books = authorOptional.map(Author::getBooks);
+    books.ifPresent(System.out::println);
+```
+
+# 5. 函数式接口
+
+## 5.1 概述
+**只有一个抽象**方法的接口称为函数接口
+
+JDK的函数接口都加上了@FuncationalInterface注解标识。但无论是否加上该注解只要只有一个抽象方法，那就是函数口
+
+## 5.2 常见的函数式接口
+- Consume 消费接口
+- Function 计算转换接口
+- Predicate判断接口
+
+## 5.3 常见的默认方法
+- and
+> 我们在使用Predicate接口的时候可能需要进行判断条件。而and方法相当于是使用了&&来拼接条件
+> 
+例如：打印作家中年龄小于17并且姓名长度大于1的作家
+```java
+public class Test0 {
+    List<Author> authors = InitData.initAuthor1();
+    @Test
+    public void test0() {
+        authors.stream()
+                .filter(
+                        ((Predicate<Author>) author -> author.getAge() < 17)
+                        .and(author -> author.getName().length() > 1)
+                )
+                .forEach(System.out::println);
     }
 }
 ```
 
+- or
+> 我们在使用Predicate接口的时候可能需要进行判断条件。而and方法相当于是使用了||来拼接条件
+> 
+例如：打印作家中年龄大于17或姓名长度大于2的作家
+```java
+public class Test0 {
+    List<Author> authors = InitData.initAuthor1();
+    @Test
+    public void test1() {
+        authors.stream()
+                .filter(
+                        ((Predicate<Author>) author -> author.getAge() > 17)
+                                .or(author -> author.getName().length() > 2)
+                )
+                .forEach(System.out::println);
+    }
+}
+```
+- negate
+> Predicate接口中的方法，negate方法相当于在判断前面加了一个!表示取反
+> 
+打印作家年龄不大于17的作家
+```java
+public class Test0 {
+    List<Author> authors = InitData.initAuthor1();
+    public void test2() {
+        authors.stream()
+                .filter(
+                        ((Predicate<Author>) author -> author.getAge() > 17)
+                                .negate()
+                )
+                .forEach(System.out::println);
+    }
+}
+```
 
+# 6. 方法引用
+我们在使用Lambda时，如果方法体中只有一个方法的调用的话（包括构造方法），我们可以用方法引用来进一步简化代码。
+
+## 6.1 推荐用法
+我们在使用Lambda时不需要考虑什么时候使用方法引用，那种方法引用，方法引用的格式是什么。我们只需要在写完Lambda方法发现方法体只有一句代码，并且方法的调用时使用快捷键尝试是否能够转换成方法引用即可。
+
+当我们方法引用使用多了，慢慢就可以直接写出方法引用
+
+## 6.2 基本格式
+类名或这对象名::方法名
+
+## 6.3 语法详解（了解）
+### 6.3.1 引用静态方法
+其实就是引用类的静态方法
+
+**格式**
+```text
+类名::方法名
+Integer::compare
+```
+
+**使用前提**
+如果我们在重写方法的时候，方法体中只有一行代码，并且这行代码调用了某个类的静态方法，并且我们把重写的抽象方法中所有的参数都按照顺序传入这个静态方法中，这个时候我们就可以使用类的静态方法
+
+例如：
+```java
+public class Test0 {
+    List<Author> authors = InitData.initAuthor1();
+  
+    @Test
+    public void test3() {
+        authors.stream()
+                .map(Author::getAge)
+                .map(String::valueOf)//引用类的静态方法
+                .forEach(System.out::println);
+    }
+}
+```
+### 6.3.2 引用对象的实例方法
+**格式**
+```text
+对象名::方法名
+```
+
+**使用前提**
+
+如果我们重写方法的时候，方法体中只有一行代码，并且这行代码调用了某个对象的成员方法，并且我们要重写的抽象方法中所有的参数都按顺序的传入这个成员方法中，这个时候就可以引用对象的实例方法
+
+```java
+public class Test0 {
+    List<Author> authors = InitData.initAuthor1();
+
+    @Test
+    public void test4() {
+        StringBuilder sb = new StringBuilder();
+        authors.stream()
+                .map(Author::getName)
+                .forEach(sb::append);//引用对象的实例方法
+        System.out.println(sb);
+    }
+}
+```
+
+### 6.3.3 引用类的实例方法
+**格式**
+```text
+类名::方法名
+```
+**使用前提**
+
+如果我们在重写方法的时候，方法体中只有一行代码，并且这行代码是调用了第一个参数的成员方法，并且我们把要重写的抽象方法中剩余的所有的参数都按照顺序传入了这个成员方法中，这个时候我们就可以引用类的实例方法。
+
+```java
+public class Test0 {
+    List<Author> authors = InitData.initAuthor1();
+
+    @Test
+    public void test4() {
+        StringBuilder sb = new StringBuilder();
+        authors.stream()
+                .map(Author::getName)//引用类的实例方法
+                .forEach(sb::append);
+        System.out.println(sb);
+    }
+}
+```
+### 6.3.4 构造器引用
+如果方法体中的一行代码是构造器的话就可以使用构造器引用
+**格式**
+```text
+类名::new
+```
+**使用前提**
+
+如果我们在重写方法的时候，方法体中只有一行代码，并且这行代码是调用了某个类的构造方法，并且我们把要重写的抽象方法中的所有的参数都按照顺序传入了这个构造方法中，这个时候我们就可以引用构造器。
+```java
+public class Test0 {
+    List<Author> authors = InitData.initAuthor1();
+    @Test
+    public void test5() {
+        authors.stream()
+                .map(Author::getName)
+                .map(StringBuilder::new)
+                .map(sb -> sb.append("-sb").toString())
+                .forEach(System.out::println);
+    }
+}
+```
+
+# 7. 高级用法
+我们之前用到的很多Stream的方法由于都使用了泛型。所以涉及到的参数和返回值都是引用数据类型。
+
+即使我们操作的是整数小数，但是实际用的都是他们的包装类。JDK5中引入的自动装箱和自动拆箱让我们在使用对应的包装类时就好像使用基本数据类型一样方便。但是你一定要知道装箱和拆箱肯定是要消耗时间的。虽然这个时间消耗很下。但是在大量的数据不断的重复装箱拆箱的时候，你就不能无视这个时间损耗了。
+
+所以为了让我们能够对这部分的时间消耗进行优化。Stream还提供了很多专门针对基本数据类型的方法。
+
+例如：mapToInt,mapToLong,mapToDouble,flatMapToInt..
+```java
+public class Test0 {
+    List<Author> authors = InitData.initAuthor1();
+    @Test
+    public void test6() {
+        authors.stream()
+                .mapToInt(Author::getAge)
+                .map(age -> age+10)
+                .filter(age -> age>18)
+                .map(age -> age+2)
+                .forEach(System.out::println);
+    }
+}
+```
+
+# 7. 并行流
+当流中有大量元素时，我们可以使用并行流去提高操作的效率。其实并行流就是把任务分配给多个线程去完全。如果我们自己去用代码实现的话其实会非常的复杂，并且要求你对并发编程有足够的理解和认识。而如果我们使用Stream的话，我们只需要修改一个方法的调用就可以使用并行流来帮我们实现，从而提高效率。
+```java
+public class Test0 {
+    @Test
+    public void test0() {
+        Stream<Integer> stream = Stream.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        Optional<Integer> reduce = stream.parallel()//并行流
+                .filter(num -> num > 5)
+                .reduce(Integer::sum);
+        reduce.ifPresent(System.out::println);
+    }
+}
+```
+![](images/1.png)
